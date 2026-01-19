@@ -1,9 +1,18 @@
+/*
+  Файл index.js является точкой входа в наше приложение
+  и только он должен содержать логику инициализации нашего приложения
+  используя при этом импорты из других файлов
+
+  Из index.js не допускается что то экспортировать
+*/
+
 import {createCardElement, deleteCard, likeCard} from "./components/card.js";
 import {closeModalWindow, openModalWindow, setCloseModalWindowEventListeners} from "./components/modal.js";
 import {clearValidation, enableValidation} from "./components/validation.js";
 import {getCardList, getUserInfo, postCard, setUserAvatar, setUserInfo} from "./components/api";
 import {setButtonLoading} from "./components/utils";
 
+// DOM узлы
 const placesWrap = document.querySelector(".places__list");
 const profileFormModalWindow = document.querySelector(".popup_type_edit");
 const profileForm = profileFormModalWindow.querySelector(".popup__form");
@@ -30,12 +39,98 @@ const avatarFormModalWindow = document.querySelector(".popup_type_edit-avatar");
 const avatarForm = avatarFormModalWindow.querySelector(".popup__form");
 const avatarInput = avatarForm.querySelector(".popup__input");
 
-const handlePreviewPicture = ({ name, link }) => {
-  imageElement.src = link;
-  imageElement.alt = name;
-  imageCaption.textContent = name;
-  clearValidation(profileForm, validationSettings);
-  openModalWindow(imageModalWindow);
+const logoElement = document.querySelector('.logo');
+const infoModalWindow = document.querySelector('.popup_type_info');
+
+const popupTitle = infoModalWindow.querySelector('.popup__title');
+const popupInfo = infoModalWindow.querySelector('.popup__info');
+const popupText = infoModalWindow.querySelector('.popup__text');
+const popupList = infoModalWindow.querySelector('.popup__list');
+
+const definitionTemplate = document.getElementById('popup-info-definition-template');
+
+const openStatisticsModal = () => {
+    logoElement.textContent = '...';
+
+    getCardList()
+        .then((cards) => {
+            let likes = 0;
+            let maxLikes = 0;
+            const users = new Set();
+            const likesByUser = {};
+
+            cards.forEach(card => {
+                users.add(card.owner._id);
+                likes += card.likes.length;
+                maxLikes = Math.max(maxLikes, card.likes.length);
+                card.likes.forEach(like => {
+                    users.add(like._id);
+
+                    likesByUser[like.name] = (likesByUser[like.name] || 0) + 1;
+                });
+            });
+
+            let champion = '—';
+            let championLikes = 0;
+
+            for (const user in likesByUser) {
+                if (likesByUser[user] > championLikes) {
+                    championLikes = likesByUser[user];
+                    champion = user;
+                }
+            }
+
+            popupTitle.textContent = 'Статистика';
+            popupInfo.innerHTML = '';
+
+            [
+                ['Всего пользователей:', users.size],
+                ['Всего Лайков:', likes],
+                ['Максимум Лайков от одного:', maxLikes],
+                ['Чемпион лайков:', champion ]
+            ].forEach(([name, value]) => {
+                const item = definitionTemplate.content.cloneNode(true);
+                item.querySelector('.popup__info-term').textContent = name;
+                item.querySelector('.popup__info-description').textContent = value;
+                popupInfo.append(item);
+            });
+
+            popupText.textContent = 'Популярные карточки';
+            popupList.innerHTML = '';
+
+            cards
+                .sort((a, b) => b.likes.length - a.likes.length)
+                .slice(0, 3)
+                .forEach((card, i) => {
+                    const li = document.createElement('li');
+                    li.textContent = `${i + 1}. ${card.name} (${card.likes.length})`;
+                    popupList.append(li);
+                });
+
+            openModalWindow(infoModalWindow);
+        })
+        .catch(() => {
+            popupTitle.textContent = 'Ошибка';
+            popupInfo.innerHTML = '<dt>Ошибка</dt><dd>Данные не получены</dd>';
+            openModalWindow(infoModalWindow);
+        })
+        .finally(() => {
+            logoElement.textContent = 'Mesto';
+        });
+};
+
+if (logoElement) {
+    logoElement.addEventListener('click', openStatisticsModal);
+    logoElement.style.cursor = 'pointer';
+    logoElement.title = 'Показать статистику';
+}
+
+
+const handlePreviewPicture = ({name, link}) => {
+    imageElement.src = link;
+    imageElement.alt = name;
+    imageCaption.textContent = name;
+    openModalWindow(imageModalWindow);
 };
 
 const handleProfileFormSubmit = (evt) => {
