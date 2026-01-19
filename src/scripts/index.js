@@ -4,7 +4,6 @@ import {clearValidation, enableValidation} from "./components/validation.js";
 import {getCardList, getUserInfo, postCard, setUserAvatar, setUserInfo} from "./components/api";
 import {setButtonLoading} from "./components/utils";
 
-// DOM узлы
 const placesWrap = document.querySelector(".places__list");
 const profileFormModalWindow = document.querySelector(".popup_type_edit");
 const profileForm = profileFormModalWindow.querySelector(".popup__form");
